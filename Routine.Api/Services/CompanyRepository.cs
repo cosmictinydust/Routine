@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Routine.Api.Data;
+using Routine.Api.DtoParameters;
 using Routine.Api.Entities;
 using System;
 using System.Collections.Generic;
@@ -69,9 +70,35 @@ namespace Routine.Api.Services
             _context.Employees.Remove(employee);
         }
 
-        public async Task<IEnumerable<Company>> GetCompaniesAsync()
+        public async Task<IEnumerable<Company>> GetCompaniesAsync(CompanyDtoParameters parameters)
         {
-            return await _context.Companies.ToListAsync();
+            if (parameters == null)
+            {
+                throw new ArgumentNullException(nameof(parameters));
+            }
+
+            if (string.IsNullOrWhiteSpace(parameters.CompanyName) && string.IsNullOrWhiteSpace(parameters.SearchTerm))
+            {
+                return await _context.Companies.ToListAsync();
+            }
+
+            var queryExpression = _context.Companies as IQueryable<Company>;
+            
+            if (!string.IsNullOrWhiteSpace(parameters.CompanyName))
+            {
+                parameters.CompanyName = parameters.CompanyName.Trim();
+                queryExpression = queryExpression.Where(x => x.Name == parameters.CompanyName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+            {
+                parameters.SearchTerm = parameters.SearchTerm.Trim();
+                queryExpression = queryExpression.Where(x => x.Name.Contains(parameters.SearchTerm)
+                  || x.Introduction.Contains(parameters.SearchTerm)
+                );
+            }
+
+            return await queryExpression.ToListAsync();
         }
 
         public async Task<IEnumerable<Company>> GetCompaniesAsync(IEnumerable<Guid> companyIds)
@@ -110,16 +137,39 @@ namespace Routine.Api.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Employee>> GetEmployeesAsync(Guid companyId)
+        public async Task<IEnumerable<Employee>> GetEmployeesAsync(Guid companyId,string genderDisplay,string q)
         {
             if (companyId == null)
             {
                 throw new ArgumentNullException(nameof(companyId));
             }
-            return await _context.Employees
-                .Where(x => x.CompanyId == companyId)
-                .OrderBy(x => x.EmployeeNo)
-                .ToListAsync();
+
+            var items = _context.Employees.Where(x => x.CompanyId == companyId);        //先预设一个所有数据的集合IQueryable（此时并不会立即查询数据库，而是相当于拼SQL语句的过程）
+
+            if (string.IsNullOrWhiteSpace(genderDisplay) && string.IsNullOrWhiteSpace(q))
+            {
+                return await items.OrderBy(x => x.EmployeeNo).ToListAsync();            //如果筛选条件 genderDisplay 及 搜索条件 q 为空，返回所有数据的List
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(genderDisplay))                          //如果筛选条件 genderDisplay不为空，返回过滤后的List
+                {
+                    genderDisplay = genderDisplay.Trim();
+                    var gender = Enum.Parse<Gender>(genderDisplay);     //转换为枚举类型
+
+                    items = items.Where(x => x.Gender == gender);
+                }
+
+                if (!string.IsNullOrWhiteSpace(q))                                      //如果搜索条件 q 不为空,返回全文搜索后的List
+                {
+                    q = q.Trim();
+                    items = items.Where(x => x.EmployeeNo.Contains(q)
+                          || x.FirstName.Contains(q)
+                          || x.LastName.Contains(q)
+                    );
+                }
+                return await items.OrderBy(x => x.EmployeeNo).ToListAsync();
+            }
         }
 
         public async Task<bool> SaveAsync()
