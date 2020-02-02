@@ -25,6 +25,7 @@ namespace Routine.Api.Controllers
         }
 
         [HttpGet]
+        [HttpHead]  //让该方法支持 Head 请求，可能用于查看Api的此功能是否可以正常使用，执行后不返回具体数据，只返回状态码，但里面的代码是跟get一样执行的，注意这个 Head 请求的写法只能写在Get操作的方法上
         public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies() //使用 ActionResult<T>注明返回类型，有利于自动文档的建立 
         {
             var companies = await _companyRepository.GetCompaniesAsync();
