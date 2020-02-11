@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Routine.Api.DtoParameters;
+using Routine.Api.Entities;
 using Routine.Api.Models;
 using Routine.Api.Services;
 using System;
@@ -35,7 +36,7 @@ namespace Routine.Api.Controllers
             return Ok(companyDtos);
         }
 
-        [HttpGet("{companyId}")]
+        [HttpGet("{companyId}",Name =nameof(GetCompany))]
         //[HttpGet]
         //[Route("{companyId}")]  //可以用注悉掉的这两句代替上面的
         public async Task<ActionResult<CompanyDto>> GetCompany(Guid companyId)
@@ -46,6 +47,22 @@ namespace Routine.Api.Controllers
                 return NotFound();
             }
             return Ok(_mapper.Map<CompanyDto>(company));
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<CompanyDto>> CreateCompany([FromBody]CompanyAddDto company) //company参数属于复杂类型参数，就算不写上[FromBody]也会默认为此类型
+        {
+            //在2.x版本或之前版本，或没有使用[ApiController]这个属性的话，应该先检查一下输入的参数是否为空
+            //if (company == null)
+            //{
+            //    return BadRequest();
+            //}
+            var entity = _mapper.Map<Company>(company);
+            _companyRepository.AddCompany(entity);
+            await _companyRepository.SaveAsync();
+
+            var returnDto = _mapper.Map<CompanyDto>(entity);
+            return CreatedAtRoute(nameof(GetCompany), new { companyId = returnDto.ID }, returnDto);
         }
 
     }

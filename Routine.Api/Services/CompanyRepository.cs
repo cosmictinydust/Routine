@@ -26,9 +26,13 @@ namespace Routine.Api.Services
                 throw new ArgumentNullException(nameof(company));
             }
             company.ID = Guid.NewGuid();
-            foreach(var employee in company.Employees)
+
+            if (company.Employees != null)
             {
-                employee.ID = Guid.NewGuid();
+                foreach (var employee in company.Employees)
+                {
+                    employee.ID = Guid.NewGuid();
+                }
             }
             _context.Companies.Add(company);
         }

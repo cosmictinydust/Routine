@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Routine.Api.Entities;
 using Routine.Api.Models;
 using Routine.Api.Services;
 using System;
@@ -46,7 +47,7 @@ namespace Routine.Api.Controllers
             return Ok(employeeDtos);
         }
 
-        [HttpGet("{employeeId}")]
+        [HttpGet("{employeeId}",Name =nameof(GetEmployeeFromCompany))]
         public async Task<ActionResult<EmployeeDto>> GetEmployeeFromCompany(Guid companyId,Guid employeeId)
         {
             if (!await _companyRepository.CompanyExistsAsync(companyId))
@@ -61,6 +62,31 @@ namespace Routine.Api.Controllers
             }
 
             return Ok(_mapper.Map<EmployeeDto>(employee));
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<EmployeeDto>> 
+            CreateEmployeeForCompany(Guid companyId, EmployeeAddDto employee)
+        {
+            if (!await _companyRepository.CompanyExistsAsync(companyId))
+            {
+                return NotFound();
+            }
+            var entity = _mapper.Map<Employee>(employee);
+            _companyRepository.AddEmployee(companyId, entity);
+            await _companyRepository.SaveAsync();
+
+            var dtoToReturn = _mapper.Map<EmployeeDto>(entity);
+
+            //使用CreatedAtRoute成功后返回一下201状态码，并在响应头(Response的headers)中带有已添加employee的查看地址
+            return CreatedAtRoute(
+                nameof(GetEmployeeFromCompany),     //此参数为 ：GetEmployeeFromCompnay方法的[HttpGet]属性条目中已标识了Route的名称
+                new
+                {
+                    companyId = dtoToReturn.CompanyId,
+                    employeeId = dtoToReturn.ID
+                },
+                dtoToReturn);
         }
     }
 }
