@@ -88,5 +88,31 @@ namespace Routine.Api.Controllers
                 },
                 dtoToReturn);
         }
+
+        [HttpPut("{employeeId}")]
+        public async Task<IActionResult> UpdateEmployeeForCompany(Guid companyId, Guid employeeId,EmployeeUpdateDto employee) 
+        {
+            if (! await _companyRepository.CompanyExistsAsync(companyId))
+            {
+                return NotFound();
+            }
+            
+            var employeeEntity = await _companyRepository.GetEmployee(companyId, employeeId);
+            if (employeeEntity==null)
+            {
+                return NotFound();
+            }
+
+            //1、entity转化为UpdateDto
+            //2、把传进来的Employee的值更新至updateDto
+            //3、把updateDto映射回entity
+            //下面的语句把上面的三个步骤都完成了
+            _mapper.Map(employee, employeeEntity);
+
+            _companyRepository.UpdateEmployee(employeeEntity);
+            await _companyRepository.SaveAsync();
+
+            return NoContent();
+        }
     }
 }
