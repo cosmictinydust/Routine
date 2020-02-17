@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Routine.Api.Models
 {
-    [EmployeeNoMustDifferentFromFirstName]
+    [EmployeeNoMustDifferentFromFirstName(ErrorMessage ="员工代码不能等于姓！！！")]
     public class EmployeeAddDto:IValidatableObject
     {
         [Display(Name = "员工代码")]
