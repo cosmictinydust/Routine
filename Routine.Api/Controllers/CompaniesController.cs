@@ -52,11 +52,18 @@ namespace Routine.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<CompanyDto>> CreateCompany([FromBody]CompanyAddDto company) //company参数属于复杂类型参数，就算不写上[FromBody]也会默认为此类型
         {
-            //在2.x版本或之前版本，或没有使用[ApiController]这个属性的话，应该先检查一下输入的参数是否为空
+            //情景一 在2.x版本或之前版本，或没有使用[ApiController]这个属性的话，应该先检查一下输入的参数是否为空
             //if (company == null)
             //{
             //    return BadRequest();
             //}
+
+            //情景二 在没有使用[ApiController]这个属性标识时，当Model验证失败时不会自动返回422错误代码，须要手动添加如下代码
+            //if (!ModelState.IsValid)
+            //{
+            //    return UnprocessableEntity(ModelState);     
+            //}
+
             var entity = _mapper.Map<Company>(company);
             _companyRepository.AddCompany(entity);
             await _companyRepository.SaveAsync();
