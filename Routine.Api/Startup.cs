@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json.Serialization;
 using Routine.Api.Data;
 using Routine.Api.Services;
 using System;
@@ -29,11 +30,14 @@ namespace Routine.Api
             {
                 setup.ReturnHttpNotAcceptable = true;   //默认值为 false 表示如果此Api的消费者在发送请求是，在请求头的"Accept" 设置为本Api不支持的媒体类型时，不会返回406状态码，而是返回他默认支持的数据类型（默认的数据类型为Json） , 如果设置为 true 就只会返回406
 
-                setup.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());  //为Api的输出数据类型添加xml类型  ，因为是Add操作，返回数据类型默认值还是Json
+                //setup.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());  //为Api的输出数据类型添加xml类型  ，因为是Add操作，返回数据类型默认值还是Json 这个写法是netcore3.0之前的,之后的写法被后面的代码代替
                 //setup.OutputFormatters.Insert(0, new XmlDataContractSerializerOutputFormatter()); //如果要把添加的xml类型设置为默认的，就用Insert方法，设置Index值为0
 
             })
-            //.AddXmlDataContractSerializerFormatters();  //.net 3.0后可以使用这种方法
+            .AddNewtonsoftJson(setup => {
+                setup.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            })
+            .AddXmlDataContractSerializerFormatters()  //.net 3.0后可以使用这种方法
             .ConfigureApiBehaviorOptions(setup=> {
                 setup.InvalidModelStateResponseFactory = context =>
                 {

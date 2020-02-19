@@ -1,5 +1,10 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Routine.Api.Entities;
 using Routine.Api.Models;
 using Routine.Api.Services;
@@ -7,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web.Http.ModelBinding;
 
 namespace Routine.Api.Controllers
 {
@@ -127,5 +133,107 @@ namespace Routine.Api.Controllers
 
             return NoContent();
         }
+
+        [HttpPatch("{employeeId}")]
+        public async Task<ActionResult<EmployeeDto>> PartiallyUpdateEmployeeFroCompany(
+            Guid companyId,
+            Guid employeeId,
+            JsonPatchDocument<EmployeeUpdateDto> patchDocument)
+        {
+            if (!await _companyRepository.CompanyExistsAsync(companyId))
+            {
+                return NotFound();
+            }
+
+            var employeeEntity =await _companyRepository.GetEmployee(companyId, employeeId);
+            if (employeeEntity == null)     //如果没有找到符合条件的employee,就进行新增操作
+            {
+                var employeeDto = new EmployeeUpdateDto();
+                patchDocument.ApplyTo(employeeDto, ModelState);
+                if (!TryValidateModel(employeeDto))
+                {
+                    #region     
+                    var probleDetails = new ValidationProblemDetails(ModelState)
+                    {
+                        Type = "http://www.baidu.com",
+                        Title = "有错误！！！",
+                        Status = StatusCodes.Status422UnprocessableEntity,
+                        Detail = "请看详细信息",
+                        Instance = HttpContext.Request.Path
+                    };
+
+                    probleDetails.Extensions.Add("traceId", HttpContext.TraceIdentifier);
+
+                    return new UnprocessableEntityObjectResult(probleDetails)
+                    {
+                        ContentTypes = { "application/problem+json" }
+                    };
+                    #endregion
+                }
+
+                var employeeToAdd = _mapper.Map<Employee>(employeeDto);
+
+                employeeToAdd.ID = employeeId;
+                _companyRepository.AddEmployee(companyId, employeeToAdd);
+                await _companyRepository.SaveAsync();
+
+                var dtoToReturn = _mapper.Map<EmployeeDto>(employeeToAdd);
+                return CreatedAtRoute(
+                    nameof(GetEmployeeFromCompany),     //此参数为 ：GetEmployeeFromCompnay方法的[HttpGet]属性条目中已标识了Route的名称
+                    new
+                    {
+                        companyId = dtoToReturn.CompanyId,
+                        employeeId = dtoToReturn.ID
+                    },
+                    dtoToReturn);
+            }
+
+            var dtoToPatch = _mapper.Map<EmployeeUpdateDto>(employeeEntity);
+            
+            //侍更新的数据需要进行验证处理
+            patchDocument.ApplyTo(dtoToPatch,ModelState);   //这里的第二个参数是在把patchDocument应用到EmployeeUpdateDto时验证Model的合法性，如果错误的话，就引发TryValidateModel为false
+
+            if (!TryValidateModel(dtoToPatch))
+            {
+                //return ValidationProblem(ModelState);     //使用这种的话，返回的错误代码为400
+
+                //如果要返回422的话，有下面两种方法
+                //方法一：直接写格式
+                #region     
+                var probleDetails = new ValidationProblemDetails(ModelState)
+                {
+                    Type = "http://www.baidu.com",
+                    Title = "有错误！！！",
+                    Status = StatusCodes.Status422UnprocessableEntity,
+                    Detail = "请看详细信息",
+                    Instance = HttpContext.Request.Path
+                };
+
+                probleDetails.Extensions.Add("traceId", HttpContext.TraceIdentifier);
+
+                return new UnprocessableEntityObjectResult(probleDetails)
+                {
+                    ContentTypes = { "application/problem+json" }
+                };
+                #endregion
+                //方法二：还是使用ValidationProblem,但因为他是在ControllerBase下的，错误信息模板不会使用已在Startup.cs定义的那个，而是使用默认的，如果要返回我们自定义的模板，就需要重写一下个这方法
+                //return ValidationProblem(ModelState); 重写的代码一直出错，不知什么原因 public override ActionResult ValidationProblem。。。。
+            }
+
+            _mapper.Map(dtoToPatch, employeeEntity);
+            _companyRepository.UpdateEmployee(employeeEntity);
+            await _companyRepository.SaveAsync();
+            return NoContent();
+        }
+
+        //public override ActionResult ValidationProblem([ActionResultObjectValue] ModelStateDictionary modelStateDictionary)
+        //{
+        //    var options = HttpContext.RequestServices.GetRequiredService<IOptions<ApiBehaviorOptions>>();
+
+        //    return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
+        //}
+
     }
 }
+
+
