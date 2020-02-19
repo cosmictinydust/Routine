@@ -90,7 +90,7 @@ namespace Routine.Api.Controllers
         }
 
         [HttpPut("{employeeId}")]
-        public async Task<IActionResult> UpdateEmployeeForCompany(Guid companyId, Guid employeeId,EmployeeUpdateDto employee) 
+        public async Task<ActionResult<EmployeeDto>> UpdateEmployeeForCompany(Guid companyId, Guid employeeId,EmployeeUpdateDto employee) 
         {
             if (! await _companyRepository.CompanyExistsAsync(companyId))
             {
@@ -100,7 +100,20 @@ namespace Routine.Api.Controllers
             var employeeEntity = await _companyRepository.GetEmployee(companyId, employeeId);
             if (employeeEntity==null)
             {
-                return NotFound();
+                var employeeToAddEntity = _mapper.Map<Employee>(employee);
+                employeeToAddEntity.ID = employeeId;
+                _companyRepository.AddEmployee(companyId, employeeToAddEntity);
+                await _companyRepository.SaveAsync();
+
+                var dtoToReturn = _mapper.Map<EmployeeDto>(employeeToAddEntity);
+                return CreatedAtRoute(
+                    nameof(GetEmployeeFromCompany),     //此参数为 ：GetEmployeeFromCompnay方法的[HttpGet]属性条目中已标识了Route的名称
+                    new
+                    {
+                        companyId = dtoToReturn.CompanyId,
+                        employeeId = dtoToReturn.ID
+                    },
+                    dtoToReturn);
             }
 
             //1、entity转化为UpdateDto
