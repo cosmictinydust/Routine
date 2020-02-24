@@ -2,6 +2,7 @@
 using Routine.Api.Data;
 using Routine.Api.DtoParameters;
 using Routine.Api.Entities;
+using Routine.Api.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -74,7 +75,7 @@ namespace Routine.Api.Services
             _context.Employees.Remove(employee);
         }
 
-        public async Task<IEnumerable<Company>> GetCompaniesAsync(CompanyDtoParameters parameters)
+        public async Task<PageList<Company>> GetCompaniesAsync(CompanyDtoParameters parameters)
         {
             if (parameters == null)
             {
@@ -102,11 +103,12 @@ namespace Routine.Api.Services
                 );
             }
 
-            queryExpression = queryExpression.Skip(parameters.PageSize * (parameters.PageNumber - 1))
-                .Take(parameters.PageSize);
+            //使用了PageList<T>，就不用下面的这一行代码了
+            //queryExpression = queryExpression.Skip(parameters.PageSize * (parameters.PageNumber - 1))
+            //    .Take(parameters.PageSize);
 
             //至此才开始实际从数据库中读取资源
-            return await queryExpression.ToListAsync();
+            return await PageList<Company>.CreateAsync(queryExpression,parameters.PageNumber,parameters.PageSize);
         }
 
         public async Task<IEnumerable<Company>> GetCompaniesAsync(IEnumerable<Guid> companyIds)

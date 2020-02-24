@@ -2,11 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Routine.Api.DtoParameters;
 using Routine.Api.Entities;
+using Routine.Api.Helpers;
 using Routine.Api.Models;
 using Routine.Api.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Routine.Api.Controllers
@@ -26,13 +29,33 @@ namespace Routine.Api.Controllers
             _mapper = mapper??throw new ArgumentNullException(nameof(mapper));
         }
 
-        [HttpGet]
+        [HttpGet(Name =nameof(GetCompanies))]
         [HttpHead]  //让该方法支持 Head 请求，可能用于查看Api的此功能是否可以正常使用，执行后不返回具体数据，只返回状态码，但里面的代码是跟get一样执行的，注意这个 Head 请求的写法只能写在Get操作的方法上
         public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies(      //使用 ActionResult<T>注明返回类型，有利于自动文档的建立 
             [FromQuery] CompanyDtoParameters parameters)        //现在的parameters参数属于复杂参数，netcore默认这个是[FromBody]的，但如果现在用http://localhost:5000/api/companies/?CompanyName=Microsoft&SearchTerm=i这样的Uril去访问这个资源的话，将会出现415的错误码，因为这个Uril用的是[FromQuery]方式接收参数，与请求中的参数来源不一致导致的，所以这里的参数前要加上[FromQuery]就说明参数的来源.
         {
             var companies = await _companyRepository.GetCompaniesAsync(parameters);
+
+            var previousPageLink = companies.HasPrevious ? CreateCompanyesResourceUri(parameters, ResourceUriType.PreviousPage) : null;
+            var nextPageLink = companies.HasNext ? CreateCompanyesResourceUri(parameters, ResourceUriType.NextPage) : null;
+            var paginationMatadata = new
+            {
+                totalCount=companies.TotalCount,
+                pageSize=companies.PageSize,
+                currentPage=companies.CurrentPage,
+                totalPages=companies.TotalPages,
+                previousPageLink,
+                nextPageLink
+            };
+            Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(paginationMatadata,
+                //加入这个参数，把生成的Link中把不安全的字符比如“\”自动转化安全的功能去掉，也就是生成象"http://abc.com/abc"这种
+                new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                }));
+
             var companyDtos = _mapper.Map<IEnumerable<CompanyDto>>(companies);
+            
             return Ok(companyDtos);
         }
 
@@ -85,6 +108,38 @@ namespace Routine.Api.Controllers
             _companyRepository.DeleteCompany(companyEntity);
             await _companyRepository.SaveAsync();
             return NoContent();
+        }
+
+        private string CreateCompanyesResourceUri(CompanyDtoParameters parameters,ResourceUriType type)
+        {
+            switch (type)
+            {
+                //返回的参数一定要把CompanyDtoParameters里的属性都返回了，要不然查询的结果就会与之前的不一样了
+                case ResourceUriType.PreviousPage:
+                    return Url.Link(nameof(GetCompanies), new       //返回给客户端的属性，要小写字母开头
+                    {
+                        pageNumber = parameters.PageNumber-1,
+                        pageSize = parameters.PageSize,
+                        companyName = parameters.CompanyName,
+                        searchTerm = parameters.SearchTerm
+                    });
+                case ResourceUriType.NextPage:
+                    return Url.Link(nameof(GetCompanies), new
+                    {
+                        pageNumber = parameters.PageNumber+1,
+                        pageSize = parameters.PageSize,
+                        companyName = parameters.CompanyName,
+                        searchTerm = parameters.SearchTerm
+                    });
+                default:
+                    return Url.Link(nameof(GetCompanies), new
+                    {
+                        pageNumber = parameters.PageNumber,
+                        pageSize = parameters.PageSize,
+                        companyName = parameters.CompanyName,
+                        searchTerm = parameters.SearchTerm
+                    });
+            }
         }
 
     }

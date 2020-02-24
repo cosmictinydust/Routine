@@ -6,7 +6,6 @@ namespace Routine.Api.DtoParameters
     public class CompanyDtoParameters
     {
         private const int MaxPageSize = 20;
-        private int pageSize = 5;
 
         public string CompanyName { get; set; }
 
