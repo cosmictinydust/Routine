@@ -147,7 +147,7 @@ namespace Routine.Api.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Employee>> GetEmployeesAsync(Guid companyId,string genderDisplay,string q)
+        public async Task<IEnumerable<Employee>> GetEmployeesAsync(Guid companyId,EmployeeDtoParameters parameters)
         {
             if (companyId == null)
             {
@@ -156,30 +156,32 @@ namespace Routine.Api.Services
 
             var items = _context.Employees.Where(x => x.CompanyId == companyId);        //先预设一个所有数据的集合IQueryable（此时并不会立即查询数据库，而是相当于拼SQL语句的过程）
 
-            if (string.IsNullOrWhiteSpace(genderDisplay) && string.IsNullOrWhiteSpace(q))
+            if (!string.IsNullOrWhiteSpace(parameters.Gender))                          //如果筛选条件 genderDisplay不为空，返回过滤后的List
             {
-                return await items.OrderBy(x => x.EmployeeNo).ToListAsync();            //如果筛选条件 genderDisplay 及 搜索条件 q 为空，返回所有数据的List
+                parameters.Gender = parameters.Gender.Trim();
+                var gender = Enum.Parse<Gender>(parameters.Gender);     //转换为枚举类型
+
+                items = items.Where(x => x.Gender == gender);
             }
-            else
+
+            if (!string.IsNullOrWhiteSpace(parameters.Q))                                      //如果搜索条件 q 不为空,返回全文搜索后的List
             {
-                if (!string.IsNullOrWhiteSpace(genderDisplay))                          //如果筛选条件 genderDisplay不为空，返回过滤后的List
-                {
-                    genderDisplay = genderDisplay.Trim();
-                    var gender = Enum.Parse<Gender>(genderDisplay);     //转换为枚举类型
-
-                    items = items.Where(x => x.Gender == gender);
-                }
-
-                if (!string.IsNullOrWhiteSpace(q))                                      //如果搜索条件 q 不为空,返回全文搜索后的List
-                {
-                    q = q.Trim();
-                    items = items.Where(x => x.EmployeeNo.Contains(q)
-                          || x.FirstName.Contains(q)
-                          || x.LastName.Contains(q)
-                    );
-                }
-                return await items.OrderBy(x => x.EmployeeNo).ToListAsync();
+                parameters.Q = parameters.Q.Trim();
+                items = items.Where(x => x.EmployeeNo.Contains(parameters.Q)
+                        || x.FirstName.Contains(parameters.Q)
+                        || x.LastName.Contains(parameters.Q)
+                );
             }
+
+            if (!string.IsNullOrWhiteSpace(parameters.OrderBy))
+            {
+                if (parameters.OrderBy.ToLowerInvariant() == "name")
+                {
+                    items = items.OrderBy(x => x.FirstName).ThenBy(x => x.LastName);
+                }
+            }
+
+            return await items.ToListAsync();
         }
 
         public async Task<bool> SaveAsync()

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Routine.Api.DtoParameters;
 using Routine.Api.Entities;
 using Routine.Api.Models;
 using Routine.Api.Services;
@@ -33,8 +34,7 @@ namespace Routine.Api.Controllers
         public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetEmployeesFromCompany
             (
                 Guid companyId,
-                [FromQuery(Name = "genderDisplay")]string genderDisplay,
-                string q
+                [FromQuery] EmployeeDtoParameters parameters 
             )
         {
             if (! await _companyRepository.CompanyExistsAsync(companyId))
@@ -42,7 +42,7 @@ namespace Routine.Api.Controllers
                 return NotFound();
             }
 
-            var employees = await _companyRepository.GetEmployeesAsync(companyId,genderDisplay,q);
+            var employees = await _companyRepository.GetEmployeesAsync(companyId,parameters);
             if (employees == null)
             {
                 return NotFound();
