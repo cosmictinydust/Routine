@@ -81,10 +81,10 @@ namespace Routine.Api.Services
                 throw new ArgumentNullException(nameof(parameters));
             }
 
-            if (string.IsNullOrWhiteSpace(parameters.CompanyName) && string.IsNullOrWhiteSpace(parameters.SearchTerm))
-            {
-                return await _context.Companies.ToListAsync();
-            }
+            //if (string.IsNullOrWhiteSpace(parameters.CompanyName) && string.IsNullOrWhiteSpace(parameters.SearchTerm))
+            //{
+            //    return await _context.Companies.ToListAsync();
+            //}
 
             var queryExpression = _context.Companies as IQueryable<Company>;
             
@@ -102,6 +102,10 @@ namespace Routine.Api.Services
                 );
             }
 
+            queryExpression = queryExpression.Skip(parameters.PageSize * (parameters.PageNumber - 1))
+                .Take(parameters.PageSize);
+
+            //至此才开始实际从数据库中读取资源
             return await queryExpression.ToListAsync();
         }
 
