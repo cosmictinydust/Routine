@@ -72,5 +72,20 @@ namespace Routine.Api.Controllers
             return CreatedAtRoute(nameof(GetCompany), new { companyId = returnDto.ID }, returnDto);
         }
 
+        [HttpDelete("{companyId}")]
+        public async Task<IActionResult> DeleteCompany(Guid companyID)
+        {
+            var companyEntity =await _companyRepository.GetCompanyAsync(companyID);
+            if (companyEntity == null)
+            {
+                return NotFound();
+            }
+            await _companyRepository.GetEmployeesAsync(companyID, null, null);  //不加上这句会出现 FOREIGN KEY constraint failed 外键约束错误的提示，原因未明
+
+            _companyRepository.DeleteCompany(companyEntity);
+            await _companyRepository.SaveAsync();
+            return NoContent();
+        }
+
     }
 }

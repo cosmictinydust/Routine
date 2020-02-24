@@ -24,7 +24,7 @@ namespace Routine.Api.Data
             modelBuilder.Entity<Employee>().HasOne(x => x.Company)  //一个人对应一家公司
                 .WithMany(x => x.Employees)     //一家公司对应多个Employee
                 .HasForeignKey(x => x.CompanyId)    //指定关联的字段
-                .OnDelete(DeleteBehavior.Restrict);  //增加约束，如果Company下面有员工的话，就不能删除操作
+                .OnDelete(DeleteBehavior.Cascade);  //增加约束，如果Company下面有员工的话，Restrict 设置为就不能删除操作 ; Cascade 设置为删除
 
             //种子数据 
             modelBuilder.Entity<Company>().HasData(
