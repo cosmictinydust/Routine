@@ -103,7 +103,7 @@ namespace Routine.Api.Controllers
             {
                 return NotFound();
             }
-            await _companyRepository.GetEmployeesAsync(companyID, null);  //不加上这句会出现 FOREIGN KEY constraint failed 外键约束错误的提示，原因未明
+            await _companyRepository.GetEmployeesAsync(companyID, new EmployeeDtoParameters());  //不加上这句会出现 FOREIGN KEY constraint failed 外键约束错误的提示，原因未明
 
             _companyRepository.DeleteCompany(companyEntity);
             await _companyRepository.SaveAsync();
