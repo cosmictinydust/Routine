@@ -69,6 +69,8 @@ namespace Routine.Api
             {
                 option.UseSqlite("Data Source=routine.db");
             });
+
+            services.AddTransient<IPropertyMappingService, PropertyMappingService>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

@@ -3,6 +3,7 @@ using Routine.Api.Data;
 using Routine.Api.DtoParameters;
 using Routine.Api.Entities;
 using Routine.Api.Helpers;
+using Routine.Api.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,13 @@ namespace Routine.Api.Services
     {
         private readonly RoutineDbContext _context;
 
-        public CompanyRepository(RoutineDbContext context) 
+        public IPropertyMappingService _propertyMappingService { get; }
+
+        public CompanyRepository(RoutineDbContext context,IPropertyMappingService propertyMappingService) 
         {
             //如果上下文为空则抛出错误
             _context = context??throw new ArgumentNullException(nameof(context));
+            _propertyMappingService = propertyMappingService ?? throw new ArgumentNullException(nameof(propertyMappingService));
         }
         
         public void AddCompany(Company company)
@@ -180,6 +184,9 @@ namespace Routine.Api.Services
                     items = items.OrderBy(x => x.FirstName).ThenBy(x => x.LastName);
                 }
             }
+
+            var mappingDictionary = _propertyMappingService.GetPropertyMapping<EmployeeDto, Employee>();
+            items = items.ApplySort(parameters.OrderBy, mappingDictionary);
 
             return await items.ToListAsync();
         }
