@@ -34,7 +34,7 @@ namespace Routine.Api.Controllers
 
         [HttpGet(Name =nameof(GetCompanies))]
         [HttpHead]  //让该方法支持 Head 请求，可能用于查看Api的此功能是否可以正常使用，执行后不返回具体数据，只返回状态码，但里面的代码是跟get一样执行的，注意这个 Head 请求的写法只能写在Get操作的方法上
-        public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies(      //使用 ActionResult<T>注明返回类型，有利于自动文档的建立 
+        public async Task<IActionResult> GetCompanies(      //使用 ActionResult<T>注明返回类型，有利于自动文档的建立；  但是加了塑形后返回的是可选字段的<T> ,不能指定是什么类型，所以用回IActionResult
             [FromQuery] CompanyDtoParameters parameters)        //现在的parameters参数属于复杂参数，netcore默认这个是[FromBody]的，但如果现在用http://localhost:5000/api/companies/?CompanyName=Microsoft&SearchTerm=i这样的Uril去访问这个资源的话，将会出现415的错误码，因为这个Uril用的是[FromQuery]方式接收参数，与请求中的参数来源不一致导致的，所以这里的参数前要加上[FromQuery]就说明参数的来源.
         {
             if (!_propertyMappingService.VaildMappingExistsFor<CompanyDto,Company>(parameters.OrderBy))
@@ -63,7 +63,7 @@ namespace Routine.Api.Controllers
 
             var companyDtos = _mapper.Map<IEnumerable<CompanyDto>>(companies);
             
-            return Ok(companyDtos);
+            return Ok(companyDtos.ShapeData(parameters.Fields));
         }
 
         [HttpGet("{companyId}",Name =nameof(GetCompany))]
@@ -125,6 +125,7 @@ namespace Routine.Api.Controllers
                 case ResourceUriType.PreviousPage:
                     return Url.Link(nameof(GetCompanies), new       //返回给客户端的属性，要小写字母开头
                     {
+                        fields=parameters.Fields,
                         orderBy=parameters.OrderBy,
                         pageNumber = parameters.PageNumber-1,
                         pageSize = parameters.PageSize,
@@ -134,6 +135,7 @@ namespace Routine.Api.Controllers
                 case ResourceUriType.NextPage:
                     return Url.Link(nameof(GetCompanies), new
                     {
+                        fields = parameters.Fields,
                         orderBy = parameters.OrderBy,
                         pageNumber = parameters.PageNumber+1,
                         pageSize = parameters.PageSize,
@@ -143,6 +145,7 @@ namespace Routine.Api.Controllers
                 default:
                     return Url.Link(nameof(GetCompanies), new
                     {
+                        fields = parameters.Fields,
                         orderBy = parameters.OrderBy,
                         pageNumber = parameters.PageNumber,
                         pageSize = parameters.PageSize,
