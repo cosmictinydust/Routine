@@ -5,6 +5,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Migrations\20200201142633_Initial.cs" />
+    <Compile Remove="Migrations\20200201142633_Initial.Designer.cs" />
+    <Compile Remove="Migrations\20200202100853_AddEmployeeData.cs" />
+    <Compile Remove="Migrations\20200202100853_AddEmployeeData.Designer.cs" />
+    <Compile Remove="Migrations\20200225032501_AddCompanyColumn.cs" />
+    <Compile Remove="Migrations\20200225032501_AddCompanyColumn.Designer.cs" />
+    <Compile Remove="Migrations\20200225032748_AddCompanyColumn.cs" />
+    <Compile Remove="Migrations\20200225032748_AddCompanyColumn.Designer.cs" />
+    <Compile Remove="Migrations\20200225033304_initialCommit.cs" />
+    <Compile Remove="Migrations\20200225033304_initialCommit.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="7.0.0" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.7" />
     <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="3.1.2" />

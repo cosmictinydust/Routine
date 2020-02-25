@@ -17,6 +17,9 @@ namespace Routine.Api.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Company>().Property(x => x.Name).IsRequired().HasMaxLength(100);
+            modelBuilder.Entity<Company>().Property(x => x.Country).HasMaxLength(50);
+            modelBuilder.Entity<Company>().Property(x => x.Industry).HasMaxLength(50);
+            modelBuilder.Entity<Company>().Property(x => x.Product).HasMaxLength(100);
             modelBuilder.Entity<Company>().Property(x => x.Introduction).HasMaxLength(500);
             modelBuilder.Entity<Employee>().Property(x => x.EmployeeNo).IsRequired().HasMaxLength(10);
             modelBuilder.Entity<Employee>().Property(x => x.FirstName).IsRequired().HasMaxLength(50);
@@ -31,19 +34,28 @@ namespace Routine.Api.Data
                 new Company { 
                     ID=Guid.Parse("1b0bcd14-4c4e-4de6-b88b-af684d657871"),
                     Name="Microsoft",
-                    Introduction="Great Company"
+                    Introduction="Great Company",
+                    Country="USA",
+                    Industry="Software",
+                    Product="Windows,Office"
                 },
                 new Company
                 {
                     ID = Guid.Parse("03d39713-c42a-41e8-8529-8ab22c843d09"),
                     Name = "Google",
-                    Introduction = "Don't be evil"
+                    Introduction = "Don't be evil",
+                    Country = "USA",
+                    Industry = "Internet",
+                    Product = "Andoird,Google Search Engine"
                 },
                 new Company
                 {
                     ID = Guid.Parse("d36fcf89-99a3-44ef-ad2a-9af87dba3134"),
                     Name = "Alipapa",
-                    Introduction = "Fubao Company"
+                    Introduction = "Fubao Company",
+                    Country = "China",
+                    Industry = "Internet",
+                    Product = "Tabao,Alibaba"
                 }
                 );
 

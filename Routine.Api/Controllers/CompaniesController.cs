@@ -22,11 +22,14 @@ namespace Routine.Api.Controllers
         private readonly ICompanyRepository _companyRepository;
         private readonly IMapper _mapper;
 
-        public CompaniesController(ICompanyRepository companyRepository,IMapper mapper)
+        public readonly IPropertyMappingService _propertyMappingService;
+
+        public CompaniesController(ICompanyRepository companyRepository,IMapper mapper,IPropertyMappingService propertyMappingService)
         {
             _companyRepository = companyRepository??
                 throw new ArgumentNullException(nameof(companyRepository));
             _mapper = mapper??throw new ArgumentNullException(nameof(mapper));
+            _propertyMappingService = propertyMappingService ?? throw new ArgumentNullException(nameof(propertyMappingService));
         }
 
         [HttpGet(Name =nameof(GetCompanies))]
@@ -34,6 +37,10 @@ namespace Routine.Api.Controllers
         public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies(      //使用 ActionResult<T>注明返回类型，有利于自动文档的建立 
             [FromQuery] CompanyDtoParameters parameters)        //现在的parameters参数属于复杂参数，netcore默认这个是[FromBody]的，但如果现在用http://localhost:5000/api/companies/?CompanyName=Microsoft&SearchTerm=i这样的Uril去访问这个资源的话，将会出现415的错误码，因为这个Uril用的是[FromQuery]方式接收参数，与请求中的参数来源不一致导致的，所以这里的参数前要加上[FromQuery]就说明参数的来源.
         {
+            if (!_propertyMappingService.VaildMappingExistsFor<CompanyDto,Company>(parameters.OrderBy))
+            {
+                return BadRequest();
+            }
             var companies = await _companyRepository.GetCompaniesAsync(parameters);
 
             var previousPageLink = companies.HasPrevious ? CreateCompanyesResourceUri(parameters, ResourceUriType.PreviousPage) : null;
@@ -118,6 +125,7 @@ namespace Routine.Api.Controllers
                 case ResourceUriType.PreviousPage:
                     return Url.Link(nameof(GetCompanies), new       //返回给客户端的属性，要小写字母开头
                     {
+                        orderBy=parameters.OrderBy,
                         pageNumber = parameters.PageNumber-1,
                         pageSize = parameters.PageSize,
                         companyName = parameters.CompanyName,
@@ -126,6 +134,7 @@ namespace Routine.Api.Controllers
                 case ResourceUriType.NextPage:
                     return Url.Link(nameof(GetCompanies), new
                     {
+                        orderBy = parameters.OrderBy,
                         pageNumber = parameters.PageNumber+1,
                         pageSize = parameters.PageSize,
                         companyName = parameters.CompanyName,
@@ -134,6 +143,7 @@ namespace Routine.Api.Controllers
                 default:
                     return Url.Link(nameof(GetCompanies), new
                     {
+                        orderBy = parameters.OrderBy,
                         pageNumber = parameters.PageNumber,
                         pageSize = parameters.PageSize,
                         companyName = parameters.CompanyName,

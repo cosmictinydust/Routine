@@ -111,6 +111,9 @@ namespace Routine.Api.Services
             //queryExpression = queryExpression.Skip(parameters.PageSize * (parameters.PageNumber - 1))
             //    .Take(parameters.PageSize);
 
+            var mappingDictionary = _propertyMappingService.GetPropertyMapping<CompanyDto, Company>();
+            queryExpression = queryExpression.ApplySort(parameters.OrderBy, mappingDictionary);
+
             //至此才开始实际从数据库中读取资源
             return await PageList<Company>.CreateAsync(queryExpression,parameters.PageNumber,parameters.PageSize);
         }
